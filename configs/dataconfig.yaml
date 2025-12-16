@@ -1,0 +1,17 @@
+# Time interval of data
+Time interval:
+  Start_year: 2014
+  Start_month: 1
+  Start_day: 1
+  End_year: 2025
+  End_month: 12
+  End_day: 30    
+
+# Place from which take data
+# Name of token which data you need
+Data info:
+  Exchange: NYSE
+  Token: GS
+
+# Time frequency of the data 'minute', 'hour'
+Frequency: day
