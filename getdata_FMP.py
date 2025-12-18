@@ -60,7 +60,7 @@ def make_csv_FMP(data_file_name=None):
     if df.empty:
         raise ValueError("No data returned for the given symbol and dates")
 
-    df.drop(columns=['symbol'], inplace=True)
+    df.drop(columns=['symbol', 'change', 'changePercent', 'vwap'], inplace=True)
 
     df = df.rename(columns={
         "date": "Time",
@@ -68,10 +68,7 @@ def make_csv_FMP(data_file_name=None):
         "high": "High",
         "low": "Low",
         "close": "Close",
-        "volume": "Volume",
-        "change": "Change",
-        "changePercent": "ChangePercent",
-        "vwap": "Vwap"
+        "volume": "Volume"
     })
 
     df['Time'] = pd.to_datetime(df['Time'])
