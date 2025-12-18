@@ -80,6 +80,8 @@ def make_csv_FMP(data_file_name=None):
 
     outpudir = "data/"
     os.makedirs(outpudir, exist_ok=True)
-    csv_file_path = f"{outpudir}{symbol}_{data_config['Frequency']}_FMP.CSV"
+    time_interval = (f"[{data_config['Time interval']['Start_year']}-{data_config['Time interval']['Start_month']}-{data_config['Time interval']['Start_day']}]" 
+                     +f"[{data_config['Time interval']['End_year']}-{data_config['Time interval']['End_month']}-{data_config['Time interval']['End_day']}]") 
+    csv_file_path = f"{outpudir}{data_config['Data info']['Exchange']}:{data_config['Data info']['Token']}_{data_config['Frequency']}_{time_interval}_FMP.CSV"
     df.to_csv(csv_file_path)
     print(f"CSV file '{csv_file_path}' was created!")

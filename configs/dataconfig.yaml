@@ -1,17 +1,17 @@
 # Time interval of data
 Time interval:
-  Start_year: 2014
-  Start_month: 1
-  Start_day: 1
+  Start_year: 2015
+  Start_month: 12
+  Start_day: 17
   End_year: 2025
   End_month: 12
-  End_day: 30    
+  End_day: 17    
 
 # Place from which take data
 # Name of token which data you need
 Data info:
-  Exchange: NYSE
-  Token: GS
+  Exchange: NASDAQ
+  Token: GOOG
 
 # Time frequency of the data 'minute', 'hour'
 Frequency: day

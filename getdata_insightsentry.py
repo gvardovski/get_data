@@ -74,47 +74,96 @@ def take_months(data_config):
 
 def get_data_from_api(data_config):
     months = take_months(data_config)
-    df = None
 
     EXCHANGE = data_config['Data info']['Exchange']
     TOKEN = data_config['Data info']['Token']
     FREQ = data_config['Frequency']
 
-    if FREQ in {"second", "minute", "hour"}:
-        endpoint = "history"
-    else:
-        endpoint = "series"
+    endpoint = "history" if FREQ in {"second", "minute", "hour"} else "series"
 
-    print("Start loading data!")
+    headers = {
+        "Authorization": f"{check_env_varailable('IS_JWT_USER')} {check_env_varailable('IS_JWT')}",
+        "Accept": "application/json"
+    }
+
+    frames = []
+
     for month in tqdm(months):
-        url = f"https://api.insightsentry.com/v3/symbols/{EXCHANGE}:{TOKEN}/{endpoint}?bar_interval=1&bar_type={FREQ}&extended=false&badj=false&dadj=false&start_ym={month}"
+        url = (
+            f"https://api.insightsentry.com/v3/symbols/"
+            f"{EXCHANGE}:{TOKEN}/{endpoint}"
+            f"?bar_interval=1&bar_type={FREQ}"
+            f"&extended=false&badj=false&dadj=false"
+            f"&start_ym={month}"
+        )
 
-        headers = {
-            "Authorization" : f"{check_env_varailable('IS_JWT_USER')} {check_env_varailable('IS_JWT')}",
-            "Accept" : "application/json"
-        }
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
 
-        success = False
-        while not success:
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                df_month = pd.DataFrame(data["series"])
-                if df is None:
-                    df = df_month
-                else:
-                    df = pd.concat([df, df_month], ignore_index=True)
-                success = True
-                wait.sleep(0.5)
-            else:
-                print(f"Request failed for month {month} with status code {response.status_code}")
-                try:
-                    print(response.json())
-                except Exception:
-                    print(response.text)
-                print("Retrying in 10 seconds...")
-                wait.sleep(10)
+        data = response.json()
+        df_month = pd.DataFrame(data.get("series", []))
+
+        if not df_month.empty:
+            frames.append(df_month)
+
+    df = pd.concat(frames, ignore_index=True)
+
+    df["time"] = pd.to_datetime(df["time"], unit="s")
+
+    start_time = f"{data_config['Time interval']['Start_year']}-{data_config['Time interval']['Start_month']}-{data_config['Time interval']['Start_day']}"
+    end_time = f"{data_config['Time interval']['End_year']}-{data_config['Time interval']['End_month']}-{data_config['Time interval']['End_day'] + 1}"
+    start_time = pd.to_datetime(start_time)
+    end_time = pd.to_datetime(end_time)
+
+    df = df[(df["time"] >= start_time) & (df["time"] <= end_time)]
+
+    df = (df.drop_duplicates(subset=["time"]).sort_values("time").reset_index(drop=True))
+    
     return df
+
+# def get_data_from_api(data_config):
+#     months = take_months(data_config)
+#     df = None
+
+#     EXCHANGE = data_config['Data info']['Exchange']
+#     TOKEN = data_config['Data info']['Token']
+#     FREQ = data_config['Frequency']
+
+#     if FREQ in {"second", "minute", "hour"}:
+#         endpoint = "history"
+#     else:
+#         endpoint = "series"
+
+#     print("Start loading data!")
+#     for month in tqdm(months):
+#         url = f"https://api.insightsentry.com/v3/symbols/{EXCHANGE}:{TOKEN}/{endpoint}?bar_interval=1&bar_type={FREQ}&extended=false&badj=false&dadj=false&start_ym={month}&end_ym={month}"
+
+#         headers = {
+#             "Authorization" : f"{check_env_varailable('IS_JWT_USER')} {check_env_varailable('IS_JWT')}",
+#             "Accept" : "application/json"
+#         }
+
+#         success = False
+#         while not success:
+#             response = requests.get(url, headers=headers)
+#             if response.status_code == 200:
+#                 data = response.json()
+#                 df_month = pd.DataFrame(data["series"])
+#                 if df is None:
+#                     df = df_month
+#                 else:
+#                     df = pd.concat([df, df_month], ignore_index=True)
+#                 success = True
+#                 wait.sleep(0.5)
+#             else:
+#                 print(f"Request failed for month {month} with status code {response.status_code}")
+#                 try:
+#                     print(response.json())
+#                 except Exception:
+#                     print(response.text)
+#                 print("Retrying in 10 seconds...")
+#                 wait.sleep(10)
+#     return df
 
 def check_env_varailable(var_name):
     if os.getenv(var_name) is None or os.getenv(var_name) == "":
@@ -141,6 +190,8 @@ def make_csv(data_file_name=None):
 
     outpudir = "data/"
     os.makedirs(outpudir, exist_ok=True)
-    csv_file_path = f"{outpudir}{data_config['Data info']['Exchange']}:{data_config['Data info']['Token']}_{data_config['Frequency']}_insightsentry.CSV"
+    time_interval = (f"[{data_config['Time interval']['Start_year']}-{data_config['Time interval']['Start_month']}-{data_config['Time interval']['Start_day']}]" 
+                     +f"[{data_config['Time interval']['End_year']}-{data_config['Time interval']['End_month']}-{data_config['Time interval']['End_day']}]")
+    csv_file_path = f"{outpudir}{data_config['Data info']['Exchange']}:{data_config['Data info']['Token']}_{data_config['Frequency']}_{time_interval}_insightsentry.CSV"
     df.to_csv(csv_file_path)
     print(f"CSV file '{csv_file_path}' was created!")
